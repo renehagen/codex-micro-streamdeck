@@ -1,0 +1,176 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.renehagen.codex-micro",
+  "Name": "Codex Micro",
+  "Version": "0.1.0.0",
+  "Author": "Rene Hagen",
+  "Description": "Codex Micro controls and five live Codex session statuses.",
+  "Category": "Codex Micro",
+  "CategoryIcon": "images/category",
+  "Icon": "images/plugin",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 3,
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "Nodejs": {
+    "Version": "24"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "Profiles": [
+    {
+      "AutoInstall": true,
+      "DeviceType": 0,
+      "DontAutoSwitchWhenInstalled": false,
+      "Name": "profiles/Codex Micro - Stream Deck MK.2",
+      "Readonly": false
+    }
+  ],
+  "Actions": [
+    {
+      "UUID": "com.renehagen.codex-micro.session",
+      "Name": "Session status",
+      "Icon": "images/session-action",
+      "Tooltip": "Open a Codex session and mark it as read.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/session-idle",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.effort-up",
+      "Name": "Effort +",
+      "Icon": "images/effort-up-action",
+      "Tooltip": "Increase reasoning effort for the selected Codex session.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/effort-up",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.fast-mode",
+      "Name": "Fast mode",
+      "Icon": "images/lightning-action",
+      "Tooltip": "Toggle Codex fast mode.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/lightning",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.accept",
+      "Name": "Accept",
+      "Icon": "images/accept-action",
+      "Tooltip": "Accept the active Codex approval or default answer.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/accept",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.reject",
+      "Name": "Reject",
+      "Icon": "images/reject-action",
+      "Tooltip": "Reject or dismiss the active Codex approval.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/reject",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.branch",
+      "Name": "Branch",
+      "Icon": "images/branch-action",
+      "Tooltip": "Fork the active Codex session.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/branch",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.effort-down",
+      "Name": "Effort -",
+      "Icon": "images/effort-down-action",
+      "Tooltip": "Decrease reasoning effort for the selected Codex session.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/effort-down",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.push-to-talk",
+      "Name": "Push to talk",
+      "Icon": "images/microphone-action",
+      "Tooltip": "Hold to dictate into Codex; release to stop.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "images/microphone",
+          "ShowTitle": false
+        },
+        {
+          "Image": "images/microphone-active",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
+      "UUID": "com.renehagen.codex-micro.agent",
+      "Name": "Submit to Codex",
+      "Icon": "images/agent-action",
+      "Tooltip": "Submit the current composer to the Codex agent.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/agent",
+          "ShowTitle": false
+        }
+      ]
+    }
+  ]
+}

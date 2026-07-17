@@ -1,0 +1,10 @@
+node_modules/
+dist/
+com.renehagen.codex-micro.sdPlugin/bin/
+com.renehagen.codex-micro.sdPlugin/logs/
+logs/
+.DS_Store
+.env
+.env.*
+*.log
+*.streamDeckPlugin
