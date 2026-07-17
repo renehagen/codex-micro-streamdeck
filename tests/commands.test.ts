@@ -7,10 +7,10 @@ import {
 } from "../src/commands.js";
 
 describe("Codex command mapping", () => {
-  it("uses a unique F-key for every hardware command", () => {
+  it("uses a unique keyboard action for every hardware command", () => {
     const keys = Object.values(COMMAND_BINDINGS).map(({ key }) => key);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toEqual(["F13", "F14", "F15", "F16", "F17", "F18", "F19"]);
+    expect(keys).toEqual(["F13", "F14", "F15", "F16", "F17", "F18", "Enter"]);
   });
 
   it("opens only valid Codex thread deep links", async () => {
@@ -32,7 +32,7 @@ describe("Codex command mapping", () => {
     ["reject", 106],
     ["branch", 64],
     ["effort-down", 79],
-    ["submit", 80]
+    ["submit", 36]
   ] as const)("sends one key without manipulating the composer for %s", (command, keyCode) => {
     const script = commandAppleScript(command);
     expect(script).not.toContain("AXShowMenu");

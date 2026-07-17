@@ -20,7 +20,12 @@ export const COMMAND_BINDINGS: Record<CodexCommand, { command: string; key: stri
   reject: { command: "approval.decline", key: "F16", keyCode: 106 },
   branch: { command: "forkThread", key: "F17", keyCode: 64 },
   "effort-down": { command: "composer.decreaseReasoningEffort", key: "F18", keyCode: 79 },
-  submit: { command: "composer.submit", key: "F19", keyCode: 80 }
+  // Submit intentionally uses the composer's native Enter behavior. The
+  // desktop app accepts composer.submit as a command, but macOS/Electron does
+  // not reliably deliver a synthetic F19 accelerator to it. A Stream Deck key
+  // does not steal keyboard focus, so Enter reaches the already focused
+  // composer and follows the app's normal send/queue/steer path.
+  submit: { command: "composer.submit", key: "Enter", keyCode: 36 }
 };
 
 type SpawnCommand = (executable: string, args: readonly string[]) => Promise<void>;
@@ -59,7 +64,7 @@ export class MacCodexController {
   }
 
   async invoke(command: CodexCommand): Promise<void> {
-    await this.assertBinding(command);
+    if (command !== "submit") await this.assertBinding(command);
     await this.activateCodex();
     try {
       await this.run("/usr/bin/osascript", [

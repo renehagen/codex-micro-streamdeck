@@ -61,7 +61,7 @@ npm run pack
 open dist/com.renehagen.codex-micro.streamDeckPlugin
 ```
 
-`npm run setup` safely merges the required F13–F19 Codex keybindings into `~/.codex/keybindings.json`. Existing bindings are preserved and an existing file is backed up. Restart the desktop app once after setup.
+`npm run setup` safely merges the required F13–F18 Codex keybindings into `~/.codex/keybindings.json`. Existing bindings are preserved and an existing file is backed up. Restart the desktop app once after setup.
 
 On first use, macOS may request **Accessibility** and **Input Monitoring** access for Stream Deck or System Events. These permissions are required for approvals, branching, submit and push-to-talk.
 
@@ -72,7 +72,7 @@ On first use, macOS may request **Accessibility** and **Input Monitoring** acces
 - Append-only rollout logs under `~/.codex/sessions` provide live task status.
 - Effort and Fast are updated directly through the local desktop IPC router, so no composer click or keyboard focus is needed.
 - The local Codex state database supplies the current effort in milliseconds and keeps rapid repeated presses ordered correctly.
-- Accept, reject, branch and submit use dedicated F13–F19 Codex keybindings.
+- Accept, reject and branch use dedicated F13–F18 Codex keybindings. Submit uses the active composer's native Enter action, avoiding unreliable synthetic F19 delivery on macOS.
 - Push-to-talk sends a held dictation key event and always releases it during cleanup.
 
 There is no hosted backend, account integration or telemetry in this project. All communication stays between Stream Deck, the local desktop app and files under your Codex home directory.
@@ -94,7 +94,7 @@ Useful commands:
 | `npm run assets` | Regenerate all Stream Deck key artwork |
 | `npm run profile:generate` | Rebuild the bundled MK.2 profile |
 | `npm run profile:install` | Install into an empty local `Profile 1`, with backup |
-| `npm run setup` | Merge the Codex F13–F19 keybindings |
+| `npm run setup` | Merge the Codex F13–F18 keybindings |
 | `npm run link` | Link the plugin into Stream Deck for development |
 | `npm run smoke` | Run a read-only bridge check against recent local tasks |
 | `npm run pack` | Build, validate and package the installer |

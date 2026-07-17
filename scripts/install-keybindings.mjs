@@ -10,8 +10,7 @@ const required = [
   { command: "approval.approve", key: "F15", preservedDefault: "Enter" },
   { command: "approval.decline", key: "F16", preservedDefault: "Escape" },
   { command: "forkThread", key: "F17" },
-  { command: "composer.decreaseReasoningEffort", key: "F18" },
-  { command: "composer.submit", key: "F19" }
+  { command: "composer.decreaseReasoningEffort", key: "F18" }
 ];
 
 async function exists(path) {
