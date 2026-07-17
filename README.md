@@ -117,4 +117,8 @@ The effort and Fast integration talks to a local IPC surface of the desktop app.
 
 This is an independent community project inspired by the Codex Micro collaboration from OpenAI and Work Louder. It is not affiliated with or endorsed by OpenAI, Work Louder or Elgato. Product names, artwork and trademarks belong to their respective owners.
 
-No open-source licence has been selected for this repository yet.
+## License
+
+The original source code in this repository is available under the [MIT License](LICENSE). You may use, modify, distribute and sell it, provided that the copyright and licence notice remain included.
+
+The MIT License does not grant rights to third-party product imagery, logos, brand names, trademarks or reference artwork in `assets/reference/`, nor to generated key artwork derived from those references. Those materials remain subject to the rights of their respective owners.
