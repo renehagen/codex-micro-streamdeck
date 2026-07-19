@@ -6,6 +6,8 @@ import {
   EffortDownAction,
   EffortUpAction,
   FastModeAction,
+  FinderAction,
+  FINDER_BUNDLE_ID,
   PushToTalkAction,
   RejectAction,
   SessionAction,
@@ -45,8 +47,8 @@ const bridge = new CodexBridge(client, new MacCodexController(), store, {
 
 const sessionAction = new SessionAction(bridge, logError);
 const pushToTalkAction = new PushToTalkAction(bridge, logError);
-const launchXApp = (): Promise<void> => new Promise((resolve, reject) => {
-  execFile("/usr/bin/open", ["-b", X_APP_BUNDLE_ID], (error) => {
+const launchApp = (bundleId: string): Promise<void> => new Promise((resolve, reject) => {
+  execFile("/usr/bin/open", ["-b", bundleId], (error) => {
     if (error) reject(error);
     else resolve();
   });
@@ -58,8 +60,9 @@ streamDeck.actions.registerAction(new AcceptAction(bridge, logError));
 streamDeck.actions.registerAction(new RejectAction(bridge, logError));
 streamDeck.actions.registerAction(new BranchAction(bridge, logError));
 streamDeck.actions.registerAction(new EffortDownAction(bridge, logError));
-streamDeck.actions.registerAction(new XAction(launchXApp, logError));
+streamDeck.actions.registerAction(new XAction(() => launchApp(X_APP_BUNDLE_ID), logError));
 streamDeck.actions.registerAction(pushToTalkAction);
+streamDeck.actions.registerAction(new FinderAction(() => launchApp(FINDER_BUNDLE_ID), logError));
 streamDeck.actions.registerAction(new SubmitAction(bridge, logError));
 
 streamDeck.system.onSystemDidWakeUp(() => void bridge.wake().catch((error: unknown) => logError("Herverbinden na sleep faalde", error)));

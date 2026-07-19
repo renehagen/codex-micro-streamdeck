@@ -1,6 +1,6 @@
 import type { KeyDownEvent, KeyUpEvent, WillDisappearEvent } from "@elgato/streamdeck";
 import { describe, expect, it, vi } from "vitest";
-import { PushToTalkAction, SessionAction, XAction } from "../src/actions.js";
+import { FinderAction, PushToTalkAction, SessionAction, XAction } from "../src/actions.js";
 import type { CodexBridge, SessionView } from "../src/bridge.js";
 
 describe("SessionAction", () => {
@@ -29,6 +29,25 @@ describe("XAction", () => {
     const launchApp = vi.fn(async () => undefined);
     const logError = vi.fn();
     const action = new XAction(launchApp, logError);
+    const key = {
+      showOk: vi.fn(async () => undefined),
+      showAlert: vi.fn(async () => undefined)
+    };
+
+    await action.onKeyDown({ action: key } as unknown as KeyDownEvent);
+
+    expect(launchApp).toHaveBeenCalledTimes(1);
+    expect(key.showOk).toHaveBeenCalledTimes(1);
+    expect(key.showAlert).not.toHaveBeenCalled();
+    expect(logError).not.toHaveBeenCalled();
+  });
+});
+
+describe("FinderAction", () => {
+  it("launches macOS Finder", async () => {
+    const launchApp = vi.fn(async () => undefined);
+    const logError = vi.fn();
+    const action = new FinderAction(launchApp, logError);
     const key = {
       showOk: vi.fn(async () => undefined),
       showAlert: vi.fn(async () => undefined)

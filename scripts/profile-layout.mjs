@@ -15,6 +15,7 @@ export const PROFILE_LAYOUT = {
   "0,2": ["Effort -", "com.renehagen.codex-micro.effort-down", 1],
   "1,2": ["Open X", "com.renehagen.codex-micro.x", 1],
   "2,2": ["Push to talk", "com.renehagen.codex-micro.push-to-talk", 2],
+  "3,2": ["Open Finder", "com.renehagen.codex-micro.finder", 1],
   "4,2": ["Submit to Codex", "com.renehagen.codex-micro.agent", 1]
 };
 

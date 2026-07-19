@@ -40,7 +40,7 @@ The effort buttons follow the exact sequence exposed by the current Codex widget
 | Peach | Waiting for approval or input |
 | Red | Error |
 
-Pressing a session key opens that task in the Codex desktop app and marks it as read. Pressing X launches the installed X app. Selecting one of these five tasks with the mouse in Codex also moves the Stream Deck selection automatically. Effort and Fast recheck the visible task immediately before applying a change, so a recent mouse selection cannot send the update to the previously selected task.
+Pressing a session key opens that task in the Codex desktop app and marks it as read. Pressing X launches the installed X app, and pressing Finder opens macOS Finder. Selecting one of these five tasks with the mouse in Codex also moves the Stream Deck selection automatically. Effort and Fast recheck the visible task immediately before applying a change, so a recent mouse selection cannot send the update to the previously selected task.
 
 ## Requirements
 

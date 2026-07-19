@@ -15,6 +15,7 @@ type LogError = (message: string, error?: unknown) => void;
 type LaunchApp = () => Promise<void>;
 
 export const X_APP_BUNDLE_ID = "com.google.Chrome.app.lodlkdfmihgonocnmddehnfgiljnadcf";
+export const FINDER_BUNDLE_ID = "com.apple.finder";
 
 interface SessionSettings extends JsonObject {
   slot?: number;
@@ -133,6 +134,21 @@ export class XAction extends SingletonAction {
       await ev.action.showOk();
     } catch (error) {
       this.logError("X kon niet worden geopend", error);
+      await ev.action.showAlert();
+    }
+  }
+}
+
+@action({ UUID: "com.renehagen.codex-micro.finder" })
+export class FinderAction extends SingletonAction {
+  constructor(private readonly launchApp: LaunchApp, private readonly logError: LogError) { super(); }
+
+  override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+    try {
+      await this.launchApp();
+      await ev.action.showOk();
+    } catch (error) {
+      this.logError("Finder kon niet worden geopend", error);
       await ev.action.showAlert();
     }
   }

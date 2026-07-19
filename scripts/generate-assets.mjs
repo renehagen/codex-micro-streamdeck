@@ -3,6 +3,7 @@ import sharp from "sharp";
 
 const source = "assets/reference/codex-micro-official.webp";
 const xLogoSource = "assets/reference/x-logo.svg";
+const finderSource = "assets/reference/finder.png";
 const xLogoSvg = await readFile(xLogoSource, "utf8");
 const output = "com.renehagen.codex-micro.sdPlugin/images";
 await mkdir(output, { recursive: true });
@@ -212,6 +213,24 @@ async function writeXActionPair() {
   }
 }
 
+async function writeFinderPair() {
+  for (const [size, suffix] of [[72, ""], [144, "@2x"]]) {
+    await sharp(finderSource)
+      .resize(size, size, { fit: "contain", kernel: sharp.kernel.lanczos3 })
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/finder${suffix}.png`);
+  }
+}
+
+async function writeFinderActionPair() {
+  for (const [size, suffix] of [[20, ""], [40, "@2x"]]) {
+    await sharp(finderSource)
+      .resize(size, size, { fit: "contain", kernel: sharp.kernel.lanczos3 })
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/finder-action${suffix}.png`);
+  }
+}
+
 await Promise.all([
   writeRasterPair("session-idle", crops.session),
   writeRasterPair("lightning", crops.lightning),
@@ -224,12 +243,14 @@ await Promise.all([
 ]);
 await writeMicrophonePair();
 await writeXPair();
+await writeFinderPair();
 
 await Promise.all([
   writeActionSvgPair("session-action", sessionActionSvg),
   writeEffortActionPair("effort-up-action", "up"),
   writeEffortActionPair("effort-down-action", "down"),
   writeXActionPair(),
+  writeFinderActionPair(),
   ...Object.entries(glyphCrops).map(([name, crop]) => writeGlyphActionPair(name, crop)),
   writeWhiteGlyphPair("category", glyphCrops.agent, [[28, ""], [56, "@2x"]])
 ]);
