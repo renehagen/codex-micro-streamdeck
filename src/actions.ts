@@ -12,6 +12,9 @@ import type { CodexCommand } from "./commands.js";
 import { renderSessionKey, svgDataUri } from "./key-image.js";
 
 type LogError = (message: string, error?: unknown) => void;
+type LaunchApp = () => Promise<void>;
+
+export const X_APP_BUNDLE_ID = "com.google.Chrome.app.lodlkdfmihgonocnmddehnfgiljnadcf";
 
 interface SessionSettings extends JsonObject {
   slot?: number;
@@ -120,6 +123,21 @@ export class EffortDownAction extends CodexCommandAction {
   constructor(bridge: CodexBridge, logError: LogError) { super(bridge, "effort-down", logError); }
 }
 
+@action({ UUID: "com.renehagen.codex-micro.x" })
+export class XAction extends SingletonAction {
+  constructor(private readonly launchApp: LaunchApp, private readonly logError: LogError) { super(); }
+
+  override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+    try {
+      await this.launchApp();
+      await ev.action.showOk();
+    } catch (error) {
+      this.logError("X kon niet worden geopend", error);
+      await ev.action.showAlert();
+    }
+  }
+}
+
 @action({ UUID: "com.renehagen.codex-micro.agent" })
 export class SubmitAction extends CodexCommandAction {
   constructor(bridge: CodexBridge, logError: LogError) { super(bridge, "submit", logError); }
@@ -135,12 +153,13 @@ export class PushToTalkAction extends SingletonAction {
 
   override async onKeyDown(ev: KeyDownEvent): Promise<void> {
     if (this.closing || this.active.has(ev.action.id) || this.pendingReleases.has(ev.action.id)) return;
+    const visual = ev.action.setState(1);
     const start = Promise.resolve().then(() => this.bridge.startDictation());
     this.active.set(ev.action.id, start);
     try {
-      await start;
-      if (this.active.get(ev.action.id) !== start) return;
-      await ev.action.setState(1);
+      // Give immediate visual feedback while macOS posts the held shortcut.
+      // Awaiting both still lets an early key-up release dictation safely.
+      await Promise.all([start, visual]);
       if (this.active.get(ev.action.id) !== start) await this.resetState(ev.action);
     } catch (error) {
       await this.release(ev.action.id).catch((cleanupError: unknown) => {

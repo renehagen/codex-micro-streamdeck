@@ -13,6 +13,7 @@ export const PROFILE_LAYOUT = {
   "3,1": ["Reject", "com.renehagen.codex-micro.reject", 1],
   "4,1": ["Branch", "com.renehagen.codex-micro.branch", 1],
   "0,2": ["Effort -", "com.renehagen.codex-micro.effort-down", 1],
+  "1,2": ["Open X", "com.renehagen.codex-micro.x", 1],
   "2,2": ["Push to talk", "com.renehagen.codex-micro.push-to-talk", 2],
   "4,2": ["Submit to Codex", "com.renehagen.codex-micro.agent", 1]
 };

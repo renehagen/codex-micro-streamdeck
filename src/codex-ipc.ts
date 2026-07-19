@@ -37,6 +37,8 @@ interface PendingBroadcast {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_FRAME_BYTES = 256 * 1024 * 1024;
+const ACTIVE_THREAD_RESPONSE_TIMEOUT_MS = 350;
+const ACTIVE_THREAD_SETTLE_MS = 25;
 
 export const DEFAULT_CODEX_IPC_SOCKET_PATH = join(
   process.env.CODEX_HOME?.trim() || join(homedir(), ".codex"),
@@ -156,6 +158,19 @@ class FramedIpcConnection {
     message: JsonObject,
     matches: (message: JsonObject) => boolean,
   ): Promise<JsonObject> {
+    const waiting = this.waitForBroadcast(matches);
+    try {
+      this.write(message);
+    } catch (error) {
+      this.fail(error instanceof Error ? error : new Error(String(error)));
+    }
+    return waiting;
+  }
+
+  waitForBroadcast(
+    matches: (message: JsonObject) => boolean,
+    timeoutMs = this.timeoutMs,
+  ): Promise<JsonObject> {
     if (this.terminalError !== undefined) {
       return Promise.reject(this.terminalError);
     }
@@ -166,26 +181,16 @@ class FramedIpcConnection {
           this.broadcastWaiters.delete(waiter);
           reject(
             new CodexIpcError(
-              `ChatGPT IPC-broadcast verliep na ${this.timeoutMs} ms`,
+              `ChatGPT IPC-broadcast verliep na ${timeoutMs} ms`,
               "broadcast-timeout",
             ),
           );
-        }, this.timeoutMs),
+        }, timeoutMs),
         matches,
         resolve,
         reject,
       };
       this.broadcastWaiters.add(waiter);
-
-      // Register first: a renderer can synchronously publish its snapshot as
-      // soon as it sees the following=true broadcast.
-      try {
-        this.write(message);
-      } catch (error) {
-        clearTimeout(waiter.timer);
-        this.broadcastWaiters.delete(waiter);
-        reject(error instanceof Error ? error : new Error(String(error)));
-      }
     });
   }
 
@@ -440,6 +445,63 @@ export class CodexIpcClient {
     }
   }
 
+  /**
+   * Returns the single visible Codex thread among the supplied candidates.
+   *
+   * Codex renderers publish a targeted `following=true` response only for
+   * conversations currently mounted in their UI. Requiring the response to
+   * target this exact IPC client prevents background broadcasts and our own
+   * snapshot readers from being mistaken for a mouse-driven selection.
+   */
+  async readActiveThread(threadIds: readonly string[]): Promise<string | null> {
+    const candidates = [...new Set(threadIds.map((id) => id.trim()).filter(Boolean))];
+    if (candidates.length === 0) return null;
+
+    const socket = await this.connectWithTimeout();
+    const connection = new FramedIpcConnection(
+      socket,
+      this.requestTimeoutMs,
+      this.maxFrameBytes,
+    );
+
+    try {
+      const clientId = await this.initialize(connection);
+      const responses = new Set<string>();
+      const timeoutMs = Math.min(
+        this.requestTimeoutMs,
+        ACTIVE_THREAD_RESPONSE_TIMEOUT_MS,
+      );
+      const waiters = candidates.map((conversationId) =>
+        connection.waitForBroadcast(
+          (message) => isActiveThreadResponse(message, clientId, conversationId),
+          timeoutMs,
+        ).then(() => {
+          responses.add(conversationId);
+        }),
+      );
+
+      for (const conversationId of candidates) {
+        connection.broadcast({
+          type: "broadcast",
+          sourceClientId: clientId,
+          version: 1,
+          method: "thread-stream-following-status-requested",
+          params: { hostId: "local", conversationId },
+        });
+      }
+
+      try {
+        await Promise.any(waiters);
+      } catch {
+        return null;
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, ACTIVE_THREAD_SETTLE_MS));
+      return responses.size === 1 ? [...responses][0]! : null;
+    } finally {
+      connection.close();
+    }
+  }
+
   async readThreadState(threadId: string): Promise<Record<string, unknown>> {
     if (threadId.trim().length === 0) {
       throw new TypeError("threadId mag niet leeg zijn");
@@ -606,4 +668,21 @@ export class CodexIpcClient {
     }
     return result;
   }
+}
+
+function isActiveThreadResponse(
+  message: JsonObject,
+  clientId: string,
+  conversationId: string,
+): boolean {
+  if (message.type !== "broadcast" || message.method !== "thread-stream-following-changed") {
+    return false;
+  }
+  const targets = message.targetClientIds;
+  if (!Array.isArray(targets) || !targets.includes(clientId)) return false;
+  const params = message.params;
+  return isJsonObject(params) &&
+    params.hostId === "local" &&
+    params.conversationId === conversationId &&
+    params.following === true;
 }

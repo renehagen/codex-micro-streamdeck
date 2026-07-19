@@ -29,14 +29,10 @@ export const COMMAND_BINDINGS: Record<CodexCommand, { command: string; key: stri
 };
 
 type SpawnCommand = (executable: string, args: readonly string[]) => Promise<void>;
-type Pause = (milliseconds: number) => Promise<void>;
 
 const CODEX_BUNDLE_ID = "com.openai.codex";
 const DICTATION_KEY_CODE = 2;
 const DICTATION_FLAGS = 393_216; // control + shift
-const NAVIGATION_SETTLE_MS = 1_000;
-
-const defaultPause: Pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const defaultSpawn: SpawnCommand = (executable, args) => new Promise((resolve, reject) => {
   const child = spawn(executable, [...args], { stdio: "ignore" });
@@ -49,18 +45,14 @@ function keybindingsPath(): string {
 }
 
 export class MacCodexController {
-  constructor(
-    private readonly run: SpawnCommand = defaultSpawn,
-    private readonly pause: Pause = defaultPause
-  ) {}
+  constructor(private readonly run: SpawnCommand = defaultSpawn) {}
 
   async openThread(threadId: string): Promise<void> {
     if (!/^[0-9a-f-]{20,}$/i.test(threadId)) throw new Error("Ongeldig Codex thread-id");
-    await this.activateCodex();
-    await this.run("/usr/bin/osascript", ["-e", waitForCodexScript()]);
+    // `open` activates Codex and delivers the deeplink in one operation. The
+    // previous readiness probes only checked for any Codex window (not the
+    // requested thread) and could spend several seconds polling System Events.
     await this.run("/usr/bin/open", ["-b", CODEX_BUNDLE_ID, `codex://threads/${threadId}`]);
-    await this.pause(NAVIGATION_SETTLE_MS);
-    await this.run("/usr/bin/osascript", ["-e", waitForCodexScript()]);
   }
 
   async invoke(command: CodexCommand): Promise<void> {
@@ -87,10 +79,6 @@ export class MacCodexController {
   }
 
   private async sendDictationEvent(isKeyDown: boolean): Promise<void> {
-    if (isKeyDown) {
-      await this.activateCodex();
-      await this.run("/usr/bin/osascript", ["-e", waitForCodexScript()]);
-    }
     try {
       await this.run("/usr/bin/osascript", [
         "-l", "JavaScript",
@@ -150,8 +138,13 @@ tell application "System Events" to key code ${keyCode}`;
 }
 
 export function dictationEventScript(isKeyDown: boolean): string {
-  const permissionCheck = isKeyDown
-    ? `ObjC.bindFunction("CGPreflightPostEventAccess", ["bool", []]); ObjC.bindFunction("CGRequestPostEventAccess", ["bool", []]); if (!Boolean($.CGPreflightPostEventAccess()) && !Boolean($.CGRequestPostEventAccess())) throw new Error("Stream Deck heeft toegankelijkheidstoegang nodig voor push-to-talk"); `
+  const activate = isKeyDown
+    ? `if (!Boolean(app.active)) { app.activateWithOptions($.NSApplicationActivateIgnoringOtherApps); const deadline = Date.now() + 1000; while (!Boolean(app.active) && Date.now() < deadline) $.NSThread.sleepForTimeInterval(0.01); if (!Boolean(app.active)) throw new Error("Codex kon niet worden geactiveerd"); } `
     : "";
-  return `ObjC.import("AppKit"); ObjC.import("CoreGraphics"); ${permissionCheck}const apps = $.NSRunningApplication.runningApplicationsWithBundleIdentifier("${CODEX_BUNDLE_ID}"); if (Number(apps.count) < 1) throw new Error("Codex-proces niet gevonden"); const pid = Number(apps.objectAtIndex(0).processIdentifier); const keyEvent = $.CGEventCreateKeyboardEvent(null, ${DICTATION_KEY_CODE}, ${isKeyDown}); $.CGEventSetFlags(keyEvent, ${DICTATION_FLAGS}); $.CGEventPostToPid(pid, keyEvent);`;
+  // Post through the HID event tap so Electron receives the same event path as
+  // a physical Ctrl+Shift+D press. Posting directly to Codex's PID can be
+  // delivered noticeably later than a normal frontmost-app keyboard event.
+  // Accessibility is configured during setup; checking/requesting it here can
+  // itself stall every push-to-talk press.
+  return `ObjC.import("AppKit"); ObjC.import("CoreGraphics"); const apps = $.NSRunningApplication.runningApplicationsWithBundleIdentifier("${CODEX_BUNDLE_ID}"); if (Number(apps.count) < 1) throw new Error("Codex-proces niet gevonden"); const app = apps.objectAtIndex(0); ${activate}const keyEvent = $.CGEventCreateKeyboardEvent(null, ${DICTATION_KEY_CODE}, ${isKeyDown}); $.CGEventSetFlags(keyEvent, ${DICTATION_FLAGS}); $.CGEventPost(0, keyEvent);`;
 }

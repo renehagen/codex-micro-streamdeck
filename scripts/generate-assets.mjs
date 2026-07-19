@@ -1,7 +1,9 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const source = "assets/reference/codex-micro-official.webp";
+const xLogoSource = "assets/reference/x-logo.svg";
+const xLogoSvg = await readFile(xLogoSource, "utf8");
 const output = "com.renehagen.codex-micro.sdPlugin/images";
 await mkdir(output, { recursive: true });
 
@@ -167,6 +169,49 @@ async function writeMicrophonePair() {
   }
 }
 
+async function writeXPair() {
+  for (const [size, suffix] of [[72, ""], [144, "@2x"]]) {
+    const logoSize = Math.round(size * .34);
+    const logo = await sharp(Buffer.from(xLogoSvg.replace('fill="white"', 'fill="#0f0f0f"')))
+      .resize(logoSize, logoSize, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png()
+      .toBuffer();
+    const cover = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      <defs><radialGradient id="b" cx="55%" cy="70%" r="62%"><stop offset="0" stop-color="#dbe2e4"/><stop offset="1" stop-color="#d3dcde"/></radialGradient></defs>
+      <circle cx="${size / 2}" cy="${size * .49}" r="${size * .215}" fill="url(#b)"/>
+    </svg>`);
+    await sharp(source)
+      .extract(crops.lightning)
+      .resize(size, size, { fit: "fill" })
+      .composite([
+        { input: cover },
+        { input: logo, left: Math.round((size - logoSize) / 2), top: Math.round(size * .49 - logoSize / 2) }
+      ])
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/x${suffix}.png`);
+  }
+}
+
+async function writeXActionPair() {
+  for (const [size, suffix] of [[20, ""], [40, "@2x"]]) {
+    const padding = Math.max(2, Math.round(size * .12));
+    const logo = await sharp(xLogoSource)
+      .resize(size - padding * 2, size - padding * 2, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png()
+      .toBuffer();
+    await sharp({ create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+      .composite([{ input: logo, left: padding, top: padding }])
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/x-action${suffix}.png`);
+  }
+}
+
 await Promise.all([
   writeRasterPair("session-idle", crops.session),
   writeRasterPair("lightning", crops.lightning),
@@ -178,11 +223,13 @@ await Promise.all([
   writeEffortPair("effort-down", "down")
 ]);
 await writeMicrophonePair();
+await writeXPair();
 
 await Promise.all([
   writeActionSvgPair("session-action", sessionActionSvg),
   writeEffortActionPair("effort-up-action", "up"),
   writeEffortActionPair("effort-down-action", "down"),
+  writeXActionPair(),
   ...Object.entries(glyphCrops).map(([name, crop]) => writeGlyphActionPair(name, crop)),
   writeWhiteGlyphPair("category", glyphCrops.agent, [[28, ""], [56, "@2x"]])
 ]);

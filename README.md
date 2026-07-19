@@ -24,7 +24,7 @@ Codex Micro turns a 5×3 Stream Deck MK.2 into a focused Codex control surface. 
 |---|---|---|---|---|---|
 | **Top** | Session 1 | Session 2 | Session 3 | Session 4 | Session 5 |
 | **Middle** | Effort + | Fast | Accept | Reject | Branch |
-| **Bottom** | Effort − | — | Push to talk | — | Submit |
+| **Bottom** | Effort − | X | Push to talk | — | Submit |
 
 The effort buttons follow the exact sequence exposed by the current Codex widget:
 
@@ -40,7 +40,7 @@ The effort buttons follow the exact sequence exposed by the current Codex widget
 | Peach | Waiting for approval or input |
 | Red | Error |
 
-Pressing a session key opens that task in the Codex desktop app and marks it as read.
+Pressing a session key opens that task in the Codex desktop app and marks it as read. Pressing X launches the installed X app. Selecting one of these five tasks with the mouse in Codex also moves the Stream Deck selection automatically. Effort and Fast recheck the visible task immediately before applying a change, so a recent mouse selection cannot send the update to the previously selected task.
 
 ## Requirements
 
@@ -70,10 +70,11 @@ On first use, macOS may request **Accessibility** and **Input Monitoring** acces
 - The official Stream Deck Node SDK hosts the plugin.
 - `codex app-server` supplies the five most recent local tasks.
 - Append-only rollout logs under `~/.codex/sessions` provide live task status.
-- Effort and Fast are updated directly through the local desktop IPC router, so no composer click or keyboard focus is needed.
+- Effort and Fast update existing tasks directly through the local desktop IPC router. In a new, empty task they fall back to the native composer commands until Codex assigns a task ID.
+- The selected session follows Codex's targeted active-task signal. Ambiguous or unavailable responses are ignored, retaining the last explicit Stream Deck selection instead of guessing.
 - The local Codex state database supplies the current effort in milliseconds and keeps rapid repeated presses ordered correctly.
 - Accept, reject and branch use dedicated F13–F18 Codex keybindings. Submit uses the active composer's native Enter action, avoiding unreliable synthetic F19 delivery on macOS.
-- Push-to-talk sends a held dictation key event and always releases it during cleanup.
+- Push-to-talk activates Codex and sends the held dictation key in one macOS action, while always releasing it during cleanup.
 
 There is no hosted backend, account integration or telemetry in this project. All communication stays between Stream Deck, the local desktop app and files under your Codex home directory.
 

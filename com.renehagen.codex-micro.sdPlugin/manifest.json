@@ -138,6 +138,21 @@
       ]
     },
     {
+      "UUID": "com.renehagen.codex-micro.x",
+      "Name": "Open X",
+      "Icon": "images/x-action",
+      "Tooltip": "Open the installed X app.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/x",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
       "UUID": "com.renehagen.codex-micro.push-to-talk",
       "Name": "Push to talk",
       "Icon": "images/microphone-action",

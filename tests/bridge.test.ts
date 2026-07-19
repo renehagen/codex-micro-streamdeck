@@ -78,6 +78,41 @@ describe("CodexBridge lifecycle", () => {
     await bridge.stop();
   });
 
+  it("mirrors the Codex app mouse selection in the session row", async () => {
+    const first = thread("019f6ee1-b6e0-7312-9547-230f6747d083", "Eerste");
+    const second = thread("019f6ead-4756-7e70-9d38-cd791811a234", "Tweede");
+    const persistence = store({
+      selectedThreadId: first.id,
+      seenAt: { [first.id]: 10, [second.id]: 10 },
+      initializedAt: 10
+    });
+    const readActiveThread = vi.fn(async () => second.id);
+    const bridge = new CodexBridge(
+      threads(vi.fn(async () => [first, second])),
+      controller(),
+      persistence,
+      {
+        pollIntervalMs: 60_000,
+        now: () => 20,
+        settingsUpdater: {
+          updateThreadSettings: vi.fn(async () => undefined),
+          readActiveThread
+        }
+      }
+    );
+
+    await bridge.start();
+
+    expect(readActiveThread).toHaveBeenCalledWith([first.id, second.id]);
+    expect(bridge.currentSessions.map(({ threadId, selected }) => [threadId, selected]))
+      .toEqual([[first.id, false], [second.id, true]]);
+    expect(persistence.save).toHaveBeenCalledWith(expect.objectContaining({
+      selectedThreadId: second.id,
+      seenAt: expect.objectContaining({ [second.id]: 20 })
+    }));
+    await bridge.stop();
+  });
+
   it("waits for an in-flight session navigation before sending a command", async () => {
     const first = thread("019f6ee1-b6e0-7312-9547-230f6747d083", "Eerste");
     const second = thread("019f6ead-4756-7e70-9d38-cd791811a234", "Tweede");
@@ -200,6 +235,77 @@ describe("CodexBridge lifecycle", () => {
     expect(persistence.save).toHaveBeenCalledTimes(4);
     await bridge.stop();
   });
+
+  it("rechecks the app selection immediately before changing effort", async () => {
+    const first = thread("019f6ee1-b6e0-7312-9547-230f6747d083", "Eerste");
+    const second = thread("019f6ead-4756-7e70-9d38-cd791811a234", "Tweede");
+    const updateThreadSettings = vi.fn(async () => undefined);
+    const readActiveThread = vi.fn()
+      .mockResolvedValueOnce(first.id)
+      .mockResolvedValueOnce(second.id);
+    const bridge = new CodexBridge(
+      threads(vi.fn(async () => [first, second])),
+      controller(),
+      store({
+        selectedThreadId: first.id,
+        seenAt: { [first.id]: 10, [second.id]: 10 },
+        initializedAt: 10,
+        threadControls: {
+          [second.id]: {
+            model: "test-model",
+            reasoningEffort: "medium",
+            serviceTier: null,
+            updatedAt: 10
+          }
+        }
+      }),
+      {
+        pollIntervalMs: 60_000,
+        now: () => 20,
+        settingsUpdater: { updateThreadSettings, readActiveThread },
+        stateReader: { readThreadControls: async () => ({ updatedAt: 10 }) },
+        loadModelCatalog: async () => [{
+          slug: "test-model",
+          defaultReasoningLevel: "medium",
+          effortOrder: ["low", "medium", "high"],
+          serviceTiers: ["priority"]
+        }]
+      }
+    );
+    await bridge.start();
+
+    await bridge.perform("effort-up");
+
+    expect(updateThreadSettings).toHaveBeenCalledWith(second.id, { effort: "high" });
+    expect(bridge.currentSessions[1]?.selected).toBe(true);
+    await bridge.stop();
+  });
+
+  it.each(["effort-up", "effort-down", "fast-mode"] as const)(
+    "uses the native %s composer command for a new session without a thread id",
+    async (command) => {
+      const first = thread("019f6ee1-b6e0-7312-9547-230f6747d083", "Eerste");
+      const invoke = vi.fn(async () => undefined);
+      const updateThreadSettings = vi.fn(async () => undefined);
+      const readActiveThread = vi.fn(async () => null);
+      const bridge = new CodexBridge(
+        threads(vi.fn(async () => [first])),
+        controller(undefined, invoke),
+        store({ selectedThreadId: first.id }),
+        {
+          pollIntervalMs: 60_000,
+          settingsUpdater: { updateThreadSettings, readActiveThread }
+        }
+      );
+      await bridge.start();
+
+      await bridge.perform(command);
+
+      expect(invoke).toHaveBeenCalledWith(command);
+      expect(updateThreadSettings).not.toHaveBeenCalled();
+      await bridge.stop();
+    }
+  );
 
   it("opens the selected task and retries when ChatGPT has no renderer owner yet", async () => {
     const first = thread("019f6ee1-b6e0-7312-9547-230f6747d083", "Eerste");

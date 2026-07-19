@@ -267,6 +267,91 @@ describe("CodexIpcClient", () => {
     expect(socket.destroyed).toBe(true);
   });
 
+  it("reads the visible Codex thread from targeted following responses", async () => {
+    const socket = new FakeIpcSocket((message, peer) => {
+      if (respondToInitialize(message, peer)) return;
+      if (
+        message.method === "thread-stream-following-status-requested" &&
+        (message.params as JsonObject).conversationId === "thread-2"
+      ) {
+        peer.send({
+          type: "broadcast",
+          method: "thread-stream-following-changed",
+          sourceClientId: "renderer-owner",
+          targetClientIds: ["streamdeck-client-17"],
+          version: 1,
+          params: {
+            hostId: "local",
+            conversationId: "thread-2",
+            following: true,
+          },
+        });
+      }
+    });
+    const client = new CodexIpcClient({ connectSocket: async () => socket });
+
+    await expect(client.readActiveThread(["thread-1", "thread-2"]))
+      .resolves.toBe("thread-2");
+    expect(socket.received).toContainEqual({
+      type: "broadcast",
+      sourceClientId: "streamdeck-client-17",
+      version: 1,
+      method: "thread-stream-following-status-requested",
+      params: { hostId: "local", conversationId: "thread-2" },
+    });
+    expect(socket.destroyed).toBe(true);
+  });
+
+  it("ignores untargeted following broadcasts when reading the visible thread", async () => {
+    const socket = new FakeIpcSocket((message, peer) => {
+      if (respondToInitialize(message, peer)) return;
+      if (message.method === "thread-stream-following-status-requested") {
+        peer.send({
+          type: "broadcast",
+          method: "thread-stream-following-changed",
+          sourceClientId: "another-streamdeck-client",
+          params: {
+            hostId: "local",
+            conversationId: "thread-1",
+            following: true,
+          },
+        });
+      }
+    });
+    const client = new CodexIpcClient({
+      connectSocket: async () => socket,
+      requestTimeoutMs: 20,
+    });
+
+    await expect(client.readActiveThread(["thread-1"])).resolves.toBeNull();
+    expect(socket.destroyed).toBe(true);
+  });
+
+  it("refuses an ambiguous active-thread result", async () => {
+    const socket = new FakeIpcSocket((message, peer) => {
+      if (respondToInitialize(message, peer)) return;
+      if (message.method !== "thread-stream-following-status-requested") return;
+      const conversationId = (message.params as JsonObject).conversationId;
+      peer.send({
+        type: "broadcast",
+        method: "thread-stream-following-changed",
+        sourceClientId: `renderer-${conversationId}`,
+        targetClientIds: ["streamdeck-client-17"],
+        version: 1,
+        params: {
+          hostId: "local",
+          conversationId,
+          following: true,
+        },
+      });
+    });
+    const client = new CodexIpcClient({ connectSocket: async () => socket });
+
+    await expect(client.readActiveThread(["thread-1", "thread-2"]))
+      .resolves.toBeNull();
+    expect(socket.destroyed).toBe(true);
+  });
+
   it("times out waiting for a snapshot, then unfollows and closes", async () => {
     const socket = new FakeIpcSocket((message, peer) => {
       respondToInitialize(message, peer);

@@ -1,6 +1,6 @@
 import type { KeyDownEvent, KeyUpEvent, WillDisappearEvent } from "@elgato/streamdeck";
 import { describe, expect, it, vi } from "vitest";
-import { PushToTalkAction, SessionAction } from "../src/actions.js";
+import { PushToTalkAction, SessionAction, XAction } from "../src/actions.js";
 import type { CodexBridge, SessionView } from "../src/bridge.js";
 
 describe("SessionAction", () => {
@@ -21,6 +21,25 @@ describe("SessionAction", () => {
     await vi.waitFor(() => expect(logError).toHaveBeenCalledWith("Sessieweergave kon niet worden bijgewerkt", expect.any(Error)));
     action.dispose();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("XAction", () => {
+  it("launches the installed X app", async () => {
+    const launchApp = vi.fn(async () => undefined);
+    const logError = vi.fn();
+    const action = new XAction(launchApp, logError);
+    const key = {
+      showOk: vi.fn(async () => undefined),
+      showAlert: vi.fn(async () => undefined)
+    };
+
+    await action.onKeyDown({ action: key } as unknown as KeyDownEvent);
+
+    expect(launchApp).toHaveBeenCalledTimes(1);
+    expect(key.showOk).toHaveBeenCalledTimes(1);
+    expect(key.showAlert).not.toHaveBeenCalled();
+    expect(logError).not.toHaveBeenCalled();
   });
 });
 
@@ -65,7 +84,7 @@ describe("PushToTalkAction", () => {
 
     await action.onKeyDown({ action: key } as unknown as KeyDownEvent);
 
-    expect(key.setState).not.toHaveBeenCalledWith(1);
+    expect(key.setState).toHaveBeenCalledWith(1);
     expect(key.setState).toHaveBeenLastCalledWith(0);
     expect(key.showAlert).toHaveBeenCalledTimes(1);
     expect(logError).toHaveBeenCalledWith("Push-to-talk kon niet starten", expect.any(Error));

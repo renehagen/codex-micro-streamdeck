@@ -58,6 +58,7 @@ export interface DesktopController {
 export interface ThreadSettingsUpdater {
   updateThreadSettings(threadId: string, settings: CodexThreadSettingsUpdate): Promise<void>;
   readThreadState?(threadId: string): Promise<Record<string, unknown>>;
+  readActiveThread?(threadIds: readonly string[]): Promise<string | null>;
 }
 
 export interface SessionView {
@@ -88,6 +89,11 @@ interface EffectiveThreadControls {
   reasoningEffort?: string;
   serviceTier?: string | null;
 }
+
+type ActiveThreadLookup =
+  | { kind: "active"; threadId: string }
+  | { kind: "none" }
+  | { kind: "unavailable" };
 
 export class CodexBridge {
   private readonly listeners = new Set<(sessions: readonly SessionView[]) => void>();
@@ -200,7 +206,14 @@ export class CodexBridge {
     await this.enqueueDesktop(async () => {
       if (this.navigationError) throw this.navigationError;
       if (isThreadSettingsCommand(command)) {
-        await this.performThreadSettingsCommand(command);
+        const activeThread = await this.syncSelectedThreadFromApp();
+        if (activeThread === "none") {
+          // A blank composer has no thread id yet, so live thread settings
+          // cannot target it. Its native command does work before first send.
+          await this.desktop.invoke(command);
+        } else {
+          await this.performThreadSettingsCommand(command);
+        }
       } else {
         await this.desktop.invoke(command);
       }
@@ -245,9 +258,16 @@ export class CodexBridge {
     }
 
     const availableIds = new Set(threadList.map((thread) => thread.id));
-    const selectedThreadId = this.settings.selectedThreadId && availableIds.has(this.settings.selectedThreadId)
-      ? this.settings.selectedThreadId
-      : threadList[0]?.id;
+    const activeThread = await this.lookupActiveThread([...availableIds]);
+    const activeThreadId = activeThread.kind === "active" ? activeThread.threadId : undefined;
+    const selectedThreadId = activeThreadId ?? (
+      this.settings.selectedThreadId && availableIds.has(this.settings.selectedThreadId)
+        ? this.settings.selectedThreadId
+        : threadList[0]?.id
+    );
+    if (activeThreadId !== undefined && activeThreadId !== this.settings.selectedThreadId) {
+      seenAt[activeThreadId] = now;
+    }
     if (selectedThreadId !== this.settings.selectedThreadId) settingsChanged = true;
 
     const views = await Promise.all(threadList.map(async (thread, slot): Promise<SessionView> => ({
@@ -318,6 +338,45 @@ export class CodexBridge {
       ?? this.sessions[0];
     if (!selected) throw new Error("Geen recente Codex-sessie beschikbaar");
     return selected;
+  }
+
+  private async syncSelectedThreadFromApp(): Promise<"active" | "none" | "unavailable"> {
+    const activeThread = await this.lookupActiveThread(
+      this.sessions.map((session) => session.threadId),
+    );
+    if (activeThread.kind !== "active") return activeThread.kind;
+    const activeThreadId = activeThread.threadId;
+    if (activeThreadId === this.settings.selectedThreadId) return "active";
+
+    const seenAt = { ...(this.settings.seenAt ?? {}), [activeThreadId]: this.now() };
+    this.settings = { ...this.settings, selectedThreadId: activeThreadId, seenAt };
+    await this.store.save(this.settings);
+    this.sessions = this.sessions.map((session) => ({
+      ...session,
+      selected: session.threadId === activeThreadId,
+      status: session.threadId === activeThreadId && session.status === "unread"
+        ? "idle"
+        : session.status
+    }));
+    this.emit();
+    this.scheduleLiveControlsRefresh(activeThreadId, true);
+    return "active";
+  }
+
+  private async lookupActiveThread(threadIds: readonly string[]): Promise<ActiveThreadLookup> {
+    const readActiveThread = this.settingsUpdater?.readActiveThread;
+    if (!readActiveThread) return { kind: "unavailable" };
+    if (threadIds.length === 0) return { kind: "none" };
+    try {
+      const activeThreadId = await readActiveThread.call(this.settingsUpdater, threadIds);
+      return activeThreadId !== null && threadIds.includes(activeThreadId)
+        ? { kind: "active", threadId: activeThreadId }
+        : { kind: "none" };
+    } catch {
+      // Mouse-selection sync is an enhancement; retain the last explicit
+      // Stream Deck selection if the desktop IPC is temporarily unavailable.
+      return { kind: "unavailable" };
+    }
   }
 
   private async effectiveControls(thread: CodexThreadSummary): Promise<EffectiveThreadControls> {

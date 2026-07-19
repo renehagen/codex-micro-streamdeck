@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import streamDeck from "@elgato/streamdeck";
 import {
   AcceptAction,
@@ -8,7 +9,9 @@ import {
   PushToTalkAction,
   RejectAction,
   SessionAction,
-  SubmitAction
+  SubmitAction,
+  XAction,
+  X_APP_BUNDLE_ID
 } from "./actions.js";
 import { CodexBridge, type BridgeSettings, type BridgeSettingsStore } from "./bridge.js";
 import { CodexClient } from "./codex-client.js";
@@ -42,6 +45,12 @@ const bridge = new CodexBridge(client, new MacCodexController(), store, {
 
 const sessionAction = new SessionAction(bridge, logError);
 const pushToTalkAction = new PushToTalkAction(bridge, logError);
+const launchXApp = (): Promise<void> => new Promise((resolve, reject) => {
+  execFile("/usr/bin/open", ["-b", X_APP_BUNDLE_ID], (error) => {
+    if (error) reject(error);
+    else resolve();
+  });
+});
 streamDeck.actions.registerAction(sessionAction);
 streamDeck.actions.registerAction(new EffortUpAction(bridge, logError));
 streamDeck.actions.registerAction(new FastModeAction(bridge, logError));
@@ -49,6 +58,7 @@ streamDeck.actions.registerAction(new AcceptAction(bridge, logError));
 streamDeck.actions.registerAction(new RejectAction(bridge, logError));
 streamDeck.actions.registerAction(new BranchAction(bridge, logError));
 streamDeck.actions.registerAction(new EffortDownAction(bridge, logError));
+streamDeck.actions.registerAction(new XAction(launchXApp, logError));
 streamDeck.actions.registerAction(pushToTalkAction);
 streamDeck.actions.registerAction(new SubmitAction(bridge, logError));
 
