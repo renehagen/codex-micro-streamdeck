@@ -19,5 +19,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run assets:verify
+      - run: npm run profile:verify
+      - run: git diff --exit-code -- com.renehagen.codex-micro.sdPlugin/images com.renehagen.codex-micro.sdPlugin/profiles
       - run: npm run build
       - run: npm run validate

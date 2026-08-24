@@ -2,21 +2,22 @@ import { describe, expect, it } from "vitest";
 import { createProfileActions, PROFILE_LAYOUT } from "../scripts/profile-layout.mjs";
 
 describe("Codex Micro profile layout", () => {
-  it("contains the 14 configured actions", () => {
-    expect(Object.keys(PROFILE_LAYOUT)).toHaveLength(14);
+  it("contains all 15 configured actions", () => {
+    expect(Object.keys(PROFILE_LAYOUT)).toHaveLength(15);
     expect(Object.keys(PROFILE_LAYOUT).sort()).toEqual([
       "0,0", "0,1", "0,2", "1,0", "1,1", "1,2", "2,0", "2,1", "2,2",
-      "3,0", "3,1", "4,0", "4,1", "4,2"
+      "3,0", "3,1", "3,2", "4,0", "4,1", "4,2"
     ]);
   });
 
-  it("puts X between effort minus and the lower-center microphone", () => {
+  it("puts Finder directly to the right of the microphone", () => {
     const actions = createProfileActions();
     expect(actions["1,2"].UUID).toBe("com.renehagen.codex-micro.x");
     expect(actions["1,2"].Name).toBe("Open X");
     expect(actions["2,2"].UUID).toBe("com.renehagen.codex-micro.push-to-talk");
+    expect(actions["3,2"].UUID).toBe("com.renehagen.codex-micro.finder");
+    expect(actions["3,2"].Name).toBe("Open Finder");
     expect(actions["4,2"].UUID).toBe("com.renehagen.codex-micro.agent");
-    expect(actions["3,2"]).toBeUndefined();
   });
 
   it("keeps effort plus and minus as the first keys of rows two and three", () => {

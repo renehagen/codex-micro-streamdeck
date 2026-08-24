@@ -24,7 +24,7 @@ Codex Micro turns a 5×3 Stream Deck MK.2 into a focused Codex control surface. 
 |---|---|---|---|---|---|
 | **Top** | Session 1 | Session 2 | Session 3 | Session 4 | Session 5 |
 | **Middle** | Effort + | Fast | Accept | Reject | Branch |
-| **Bottom** | Effort − | X | Push to talk | — | Submit |
+| **Bottom** | Effort − | X | Push to talk | Finder | Submit |
 
 The effort buttons follow the exact sequence exposed by the current Codex widget:
 
@@ -40,7 +40,7 @@ The effort buttons follow the exact sequence exposed by the current Codex widget
 | Peach | Waiting for approval or input |
 | Red | Error |
 
-Pressing a session key opens that task in the Codex desktop app and marks it as read. Pressing X launches the installed X app. Selecting one of these five tasks with the mouse in Codex also moves the Stream Deck selection automatically. Effort and Fast recheck the visible task immediately before applying a change, so a recent mouse selection cannot send the update to the previously selected task.
+Pressing a session key opens that task in the Codex desktop app and marks it as read. Pressing X launches the installed X app, and pressing Finder opens macOS Finder. Selecting one of these five tasks with the mouse in Codex also moves the Stream Deck selection automatically. Effort and Fast recheck the visible task immediately before applying a change, so a recent mouse selection cannot send the update to the previously selected task.
 
 ## Requirements
 
@@ -93,7 +93,9 @@ Useful commands:
 | Command | Purpose |
 |---|---|
 | `npm run assets` | Regenerate all Stream Deck key artwork |
+| `npm run assets:verify` | Verify byte-identical PNG generation across timezones |
 | `npm run profile:generate` | Rebuild the bundled MK.2 profile |
+| `npm run profile:verify` | Verify a byte-identical profile archive across timezones |
 | `npm run profile:install` | Install into an empty local `Profile 1`, with backup |
 | `npm run setup` | Merge the Codex F13–F18 keybindings |
 | `npm run link` | Link the plugin into Stream Deck for development |
@@ -123,3 +125,5 @@ This is an independent community project inspired by the Codex Micro collaborati
 The original source code in this repository is available under the [MIT License](LICENSE). You may use, modify, distribute and sell it, provided that the copyright and licence notice remain included.
 
 The MIT License does not grant rights to third-party product imagery, logos, brand names, trademarks or reference artwork in `assets/reference/`, nor to generated key artwork derived from those references. Those materials remain subject to the rights of their respective owners.
+
+The generic folder artwork in `assets/reference/folder.svg` is original project artwork and is distributed under the repository's MIT License. It does not reproduce Apple Finder artwork.

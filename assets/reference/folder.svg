@@ -1,0 +1,14 @@
+<!-- SPDX-License-Identifier: MIT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" role="img" aria-labelledby="title description">
+  <title id="title">Generic folder</title>
+  <desc id="description">An original rounded blue folder illustration.</desc>
+  <defs>
+    <linearGradient id="folder" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#77d7ff"/>
+      <stop offset="1" stop-color="#2388db"/>
+    </linearGradient>
+  </defs>
+  <path d="M15 40c0-8 6-14 14-14h29l12 13h45c8 0 14 6 14 14v58c0 8-6 14-14 14H29c-8 0-14-6-14-14V40z" fill="#196faf"/>
+  <path d="M15 54h114v57c0 8-6 14-14 14H29c-8 0-14-6-14-14V54z" fill="url(#folder)"/>
+  <path d="M28 69h88" fill="none" stroke="#b8ecff" stroke-linecap="round" stroke-width="7" opacity=".9"/>
+</svg>

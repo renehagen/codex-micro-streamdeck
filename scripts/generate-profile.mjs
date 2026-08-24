@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -13,10 +13,28 @@ const outputDirectory = path.resolve("com.renehagen.codex-micro.sdPlugin", "prof
 const output = path.join(outputDirectory, "Codex Micro - Stream Deck MK.2.streamDeckProfile");
 const temporary = await mkdtemp(path.join(tmpdir(), "codex-micro-profile-"));
 const profileRoot = path.join(temporary, `${profileId}.sdProfile`);
+const reproducibleTimestamp = new Date("2000-01-01T00:00:00.000Z");
 
 const writeJson = async (destination, value) => {
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(destination, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+};
+
+const listArchiveEntries = async (directory, relative = "") => {
+  const names = (await readdir(directory, { withFileTypes: true }))
+    .sort((left, right) => left.name.localeCompare(right.name, "en"));
+  const entries = [];
+  for (const item of names) {
+    const childRelative = path.posix.join(relative, item.name);
+    const childPath = path.join(directory, item.name);
+    if (item.isDirectory()) {
+      entries.push(`${childRelative}/`);
+      entries.push(...await listArchiveEntries(childPath, childRelative));
+    } else {
+      entries.push(childRelative);
+    }
+  }
+  return entries;
 };
 
 try {
@@ -41,9 +59,20 @@ try {
   await mkdir(path.join(profileRoot, "Profiles", currentPage, "Images"), { recursive: true });
   await mkdir(path.join(profileRoot, "Profiles", defaultPage, "Images"), { recursive: true });
 
+  const profileEntries = [
+    `${path.basename(profileRoot)}/`,
+    ...(await listArchiveEntries(profileRoot, path.basename(profileRoot)))
+  ];
+  for (const entry of [...profileEntries].reverse()) {
+    await utimes(path.join(temporary, entry), reproducibleTimestamp, reproducibleTimestamp);
+  }
+
   await mkdir(outputDirectory, { recursive: true });
   await rm(output, { force: true });
-  await execFile("/usr/bin/zip", ["-q", "-r", output, path.basename(profileRoot)], { cwd: temporary });
+  await execFile("/usr/bin/zip", ["-X", "-q", output, ...profileEntries], {
+    cwd: temporary,
+    env: { ...process.env, TZ: "UTC" }
+  });
   console.log(`Profielpakket gegenereerd: ${output}`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

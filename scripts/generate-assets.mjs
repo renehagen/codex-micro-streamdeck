@@ -1,11 +1,31 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const source = "assets/reference/codex-micro-official.webp";
 const xLogoSource = "assets/reference/x-logo.svg";
+const finderSource = "assets/reference/folder.svg";
 const xLogoSvg = await readFile(xLogoSource, "utf8");
 const output = "com.renehagen.codex-micro.sdPlugin/images";
 await mkdir(output, { recursive: true });
+
+// Keep the checked-in encoding when a dependency upgrade changes only PNG
+// container bytes, not pixels. This avoids noisy binary churn while retaining
+// deterministic source-derived artwork.
+const previousPngs = new Map();
+for (const name of (await readdir(output)).filter((entry) => entry.endsWith(".png"))) {
+  previousPngs.set(name, await readFile(`${output}/${name}`));
+}
+
+async function samePixels(left, right) {
+  const [leftImage, rightImage] = await Promise.all([
+    sharp(left).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+    sharp(right).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  ]);
+  return leftImage.info.width === rightImage.info.width
+    && leftImage.info.height === rightImage.info.height
+    && leftImage.info.channels === rightImage.info.channels
+    && leftImage.data.equals(rightImage.data);
+}
 
 const effortSources = {
   up: {
@@ -212,6 +232,24 @@ async function writeXActionPair() {
   }
 }
 
+async function writeFinderPair() {
+  for (const [size, suffix] of [[72, ""], [144, "@2x"]]) {
+    await sharp(finderSource)
+      .resize(size, size, { fit: "contain" })
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/finder${suffix}.png`);
+  }
+}
+
+async function writeFinderActionPair() {
+  for (const [size, suffix] of [[20, ""], [40, "@2x"]]) {
+    await sharp(finderSource)
+      .resize(size, size, { fit: "contain" })
+      .png({ compressionLevel: 9 })
+      .toFile(`${output}/finder-action${suffix}.png`);
+  }
+}
+
 await Promise.all([
   writeRasterPair("session-idle", crops.session),
   writeRasterPair("lightning", crops.lightning),
@@ -224,16 +262,26 @@ await Promise.all([
 ]);
 await writeMicrophonePair();
 await writeXPair();
+await writeFinderPair();
 
 await Promise.all([
   writeActionSvgPair("session-action", sessionActionSvg),
   writeEffortActionPair("effort-up-action", "up"),
   writeEffortActionPair("effort-down-action", "down"),
   writeXActionPair(),
+  writeFinderActionPair(),
   ...Object.entries(glyphCrops).map(([name, crop]) => writeGlyphActionPair(name, crop)),
   writeWhiteGlyphPair("category", glyphCrops.agent, [[28, ""], [56, "@2x"]])
 ]);
 
 for (const [size, suffix] of [[256, ""], [512, "@2x"]]) {
   await sharp(source).extract(crops.agent).resize(size, size).png({ compressionLevel: 9 }).toFile(`${output}/plugin${suffix}.png`);
+}
+
+for (const [name, previous] of previousPngs) {
+  const destination = `${output}/${name}`;
+  const generated = await readFile(destination);
+  if (!generated.equals(previous) && await samePixels(previous, generated)) {
+    await writeFile(destination, previous);
+  }
 }

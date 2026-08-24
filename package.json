@@ -6,8 +6,10 @@
   "description": "Codex Micro controls and live Codex session status for Stream Deck MK.2.",
   "scripts": {
     "assets": "node scripts/generate-assets.mjs",
+    "assets:verify": "node scripts/verify-assets-reproducibility.mjs",
     "build": "npm run assets && npm run profile:generate && npm run typecheck && node scripts/build.mjs",
     "profile:generate": "node scripts/generate-profile.mjs",
+    "profile:verify": "node scripts/verify-profile-reproducibility.mjs",
     "profile:install": "node scripts/install-profile.mjs",
     "setup": "node scripts/install-keybindings.mjs",
     "smoke": "node scripts/run-smoke.mjs",
@@ -25,7 +27,7 @@
     "@elgato/cli": "1.7.4",
     "@types/node": "^24.0.0",
     "esbuild": "^0.25.0",
-    "sharp": "^0.34.0",
+    "sharp": "^0.35.3",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   },

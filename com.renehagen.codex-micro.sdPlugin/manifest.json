@@ -153,6 +153,21 @@
       ]
     },
     {
+      "UUID": "com.renehagen.codex-micro.finder",
+      "Name": "Open Finder",
+      "Icon": "images/finder-action",
+      "Tooltip": "Open macOS Finder.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/finder",
+          "ShowTitle": false
+        }
+      ]
+    },
+    {
       "UUID": "com.renehagen.codex-micro.push-to-talk",
       "Name": "Push to talk",
       "Icon": "images/microphone-action",
